@@ -1,0 +1,37 @@
+{
+  "name": "akera-web-authentication",
+  "version": "1.0.2",
+  "description": "Authentication middleware for Akera web service",
+  "homepage": "http://akera.io",
+  "author": {
+    "name": "Marian Edu",
+    "email": "marian.edu@acorn.ro"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/akera-io/akera-web-authentication/raw/master/LICENSE"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akera-io/akera-web-authentication.git"
+  },
+  "bugs": {
+    "url": "https://github.com/akera-io/akera-web-authentication/issues"
+  },
+  "scripts": {
+    "lint": "./node_modules/.bin/jshint ./lib",
+    "checkStyle": "./node_modules/.bin/jscs ./lib",
+    "test": "npm run-script lint && npm run-script checkStyle"
+  },
+  "dependencies": {
+    "passport": ">=0.3.0",
+    "passport-facebook": ">=2.0.0",
+    "passport-google-oauth": ">=0.2.0",
+    "passport-ldapauth": ">=0.4.0",
+    "passport-akera": ">=1.0.0"
+  },
+  "devDependencies": {
+    "jshint": ">= 2.6.0",
+    "jscs": ">= 1.11"
+  }
+}
