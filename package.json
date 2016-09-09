@@ -1,6 +1,6 @@
 {
   "name": "akera-web-authentication",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Authentication middleware for Akera web service",
   "homepage": "http://akera.io",
   "author": {
