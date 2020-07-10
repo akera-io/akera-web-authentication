@@ -1,6 +1,15 @@
 import {BasicStrategy} from "passport-http";
+import {PassportStatic} from "passport";
+import AkeraWebAuthentication from "../AkeraWebAuthentication";
 
-export default function init(config, router, passport, webAuth): void {
+export interface IHTTPConfig {
+  name?: string,
+  route?: any,
+  fullRoute?: any,
+  realm: string,
+}
+
+export default function init(config: IHTTPConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   // basic authentication
   const strategy = new BasicStrategy(
     {
@@ -59,8 +68,6 @@ export default function init(config, router, passport, webAuth): void {
 
   passport.use(strategy);
 
-  // check for basic authentication header, authentication delegated to other
-  // providers
   router.use(function (req, res, next) {
     passport.authenticate(strategy.name, function () {
       // noop

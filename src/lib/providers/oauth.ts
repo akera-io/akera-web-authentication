@@ -1,4 +1,21 @@
-export default function init(config, router, passport, webAuth): void {
+import {PassportStatic} from "passport";
+import AkeraWebAuthentication from "../AkeraWebAuthentication";
+
+type AuthCallback = (profile, cb: (err, user) => void) => void;
+
+export interface IOAuthConfig {
+  oauthStrategy: string,
+  name?: string,
+  scope?: string | Array<string>,
+  route?: any,
+  fullRoute?: any,
+  authCallback?: AuthCallback,
+  profileAuth: string,
+  callbackURL: string,
+  failureRedirect: string,
+}
+
+export default function init(config: IOAuthConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.oauthStrategy) {
     throw new Error("Invalid OAuth authentication configuration.");
   }

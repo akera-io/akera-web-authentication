@@ -1,6 +1,20 @@
 import {Strategy as AkeraStrategy} from "@akeraio/passport";
+import {PassportStatic} from "passport";
 
-export default function init(config, router, passport, webAuth): void {
+import AkeraWebAuthentication from "../AkeraWebAuthentication";
+
+export interface IAkeraConfig {
+  name?: string,
+  route?: any,
+  fullRoute?: any,
+  host?: string,
+  port?: number | string,
+  useSSL?: boolean,
+  usernameField?: string,
+  passwordField?: string,
+}
+
+export default function init(config: IAkeraConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   // broker configuration required for api authentication
   if (!config || !config.host || !config.port) {
     // if service mounted on broker get configuration from it

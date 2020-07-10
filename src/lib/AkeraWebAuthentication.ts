@@ -1,11 +1,20 @@
 import path from "path";
+import {Request, Response, NextFunction, Router} from "express";
+import {PassportStatic} from "passport";
+
+interface IProvider {
+  strategy?: string,
+  name?: string,
+  successRedirect?: any,
+  failureRedirect?: any
+}
 
 export default class AkeraWebAuthentication {
   private strategies: Array<any>;
   private config: any;
   private akeraApp: any;
 
-  static dependencies() {
+  static dependencies(): Array<string> {
     return ["@akeraio/web-session"]
   }
 
@@ -39,7 +48,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  public initService(config, router) {
+  public initService(config, router): void {
     if (!router || !router.__app || typeof router.__app.require !== "function") {
       throw new Error("Invalid Akera web service router.");
     }
@@ -78,7 +87,7 @@ export default class AkeraWebAuthentication {
 
     akeraApp.log('debug', 'Authentication route: ' + authRouter.__route);
 
-    config.providers.forEach((provider) => {
+    config.providers.forEach((provider: IProvider) => {
       provider.successRedirect = config.successRedirect;
       provider.failureRedirect = config.failureRedirect;
 
@@ -113,11 +122,11 @@ export default class AkeraWebAuthentication {
     router.use(this.requireAuthentication);
   }
 
-  isAuthenticated(req) {
+  isAuthenticated(req: Request): boolean {
     return req && req.session && !!(req.session.user || req.session.get('user'));
   }
 
-  requireAuthentication(req, res, next) {
+  requireAuthentication(req: Request, res: Response, next: NextFunction): void {
     if (this.isAuthenticated(req))
       next();
     else {
@@ -129,8 +138,9 @@ export default class AkeraWebAuthentication {
 
       if (loginRedirect) {
         if (loginRedirect !== req.originalUrl) {
-          if (req.session)
+          if (req.session) {
             req.session.authOriginalUrl = req.originalUrl;
+          }
           res.redirect(loginRedirect);
         } else {
           next();
@@ -142,7 +152,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  logout(req, res) {
+  logout(req: Request, res: Response): void {
     try {
       req.logout();
       req.session.set('user');
@@ -154,7 +164,7 @@ export default class AkeraWebAuthentication {
     res.redirect(logoutRedirect);
   }
 
-  useProvider(provider, router, passport) {
+  useProvider(provider: IProvider, router: Router, passport: PassportStatic): void {
     if (!provider.strategy)
       throw new Error('Authentication provider strategy not set.');
 
@@ -173,7 +183,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  successRedirect(req, res, next) {
+  successRedirect(req: Request, res: Response, next: NextFunction): void {
     this.setUser(req, req.user);
 
     if (res) {
@@ -188,7 +198,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  failureRedirect(req, res, next) {
+  failureRedirect(req: Request, res: Response, next?: NextFunction): void {
     if (req && res && this.config && this.config.failureRedirect) {
       res.redirect(this.config.failureRedirect);
     }
@@ -198,11 +208,11 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  getUrl(req) {
+  getUrl(req: Request): string {
     return `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   }
 
-  setUser(req, user) {
+  setUser(req: Request, user: any): void {
     if (req && user && req.session) {
       if (typeof req.session.set === 'function') {
         req.session.set('user', user);
@@ -212,7 +222,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  addLocalStrategy(name, options) {
+  addLocalStrategy(name: string, options: Map<string, any>): void {
     this.strategies = this.strategies || [];
 
     const found = this.strategies.filter(function (strategy) {
@@ -227,7 +237,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  getLocalStrategies() {
+  getLocalStrategies(): Array<any> {
     return this.strategies;
   }
 }

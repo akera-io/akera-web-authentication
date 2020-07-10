@@ -1,5 +1,7 @@
 import * as fs from "fs";
+import {PassportStatic} from "passport";
 import LDAPStrategy from "passport-ldapauth";
+import AkeraWebAuthentication from "../AkeraWebAuthentication";
 
 function loadCertificates(tlsOptions, akeraApp) {
   try {
@@ -19,7 +21,25 @@ function loadCertificates(tlsOptions, akeraApp) {
   return tlsOptions;
 }
 
-export default function init(config, router, passport, webAuth): void {
+export interface ILDAPConfig {
+  name?: string,
+  url: string,
+  bindDn: string,
+  bindCredentials: string,
+  searchBase?: string,
+  searchDomain: string,
+  route?: any,
+  fullRoute?: any,
+  searchFilter?: string,
+  timeout?: string,
+  usernameField?: string,
+  passwordField?: string,
+  tlsOptions?: {
+    ca?: string | Map<string, any>
+  }
+}
+
+export default function init(config: ILDAPConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.url || !config.bindDn || !config.bindCredentials) {
     throw new Error("LDAP configuration invalid.");
   }
@@ -49,7 +69,7 @@ export default function init(config, router, passport, webAuth): void {
       searchFilter: config.searchFilter ||
         "(&(objectcategory=person)(objectclass=user)(|(samaccountname={{username}})(mail={{username}})))",
       reconnect: true,
-      timeout: parseInt(config.timeout || 5),
+      timeout: parseInt(config.timeout || "5"),
       tlsOptions: {},
     },
     usernameField: config.usernameField || "username",
