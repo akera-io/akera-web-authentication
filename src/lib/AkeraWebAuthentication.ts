@@ -7,6 +7,9 @@ interface IProvider {
   name?: string,
   successRedirect?: any,
   failureRedirect?: any
+  fail?: any,
+  success?: any,
+  error?: any
 }
 
 export default class AkeraWebAuthentication {
@@ -222,7 +225,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  addLocalStrategy(name: string, options: Map<string, any>): void {
+  addLocalStrategy(name: string, options: any): void {
     this.strategies = this.strategies || [];
 
     const found = this.strategies.filter(function (strategy) {
