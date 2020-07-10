@@ -5,7 +5,7 @@
 ## Installation
 
 ```bash
-$ npm install akera-web-authentication
+$ npm install @akeraio/web-authentication
 ```
 
 ## Docs
@@ -29,9 +29,10 @@ $ npm test
   application's configuration.
    
   ```json
+{
   "services": [
 		{ 
-			"middleware": "akera-web-authentication",
+			"middleware": "@akeraio/web-authentication",
 			"config": {
 				"route": "/authenticate/",
 				"loginRedirect": "/login.html",
@@ -65,6 +66,7 @@ $ npm test
 			}
 		}
 	]
+}
   ```
   
   Service options available:
@@ -76,7 +78,7 @@ $ npm test
   	- `ldap`: LDAP, Active Directory provider using [passport-ldapauth](https://github.com/vesse/passport-ldapauth)
 	- `facebook`: Facebook provider using [passport-facebook](https://github.com/jaredhanson/passport-facebook)
   	- `google`: Google provider using [passport-google-oauth](https://github.com/jaredhanson/passport-google-oauth)
-  	- `akera`: Akera.io server-side authentication provider using [passport-akera](https://github.com/akera-io/passport-akera)
+  	- `akera`: Akera.io server-side authentication provider using [@akeraio/passport](https://github.com/akera-io/passport-akera)
   	
   	Provider specific configuration can be found on each provider web page.  	
   

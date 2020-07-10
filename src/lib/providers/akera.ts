@@ -1,9 +1,6 @@
-const AkeraStrategy = require('passport-akera').Strategy;
+import {Strategy as AkeraStrategy} from "@akeraio/passport";
 
-module.exports = init;
-
-function init(config, router, passport, webAuth) {
-
+export default function init(config, router, passport, webAuth): void {
   // broker configuration required for api authentication
   if (!config || !config.host || !config.port) {
     // if service mounted on broker get configuration from it
@@ -13,35 +10,35 @@ function init(config, router, passport, webAuth) {
       config.port = config.port || router.__broker.port;
       config.useSSL = config.useSSL || router.__broker.useSSL;
     } else
-      throw new Error('Invalid Akera authentication configuration.');
+      throw new Error("Invalid Akera authentication configuration.");
   }
 
   const akeraApp = router.__app;
-  const strategyName = config.name || strategy.name;
 
-  config.route = akeraApp.getRoute(config.route || '/akera/');
+  config.route = akeraApp.getRoute(config.route || "/akera/");
   config.fullRoute = akeraApp.getRoute(config.route, router);
 
   const OPTS = {
-    server : {
-      host : config.host,
-      port : config.port,
-      useSSL : config.useSSL || false
+    server: {
+      host: config.host,
+      port: config.port,
+      useSSL: config.useSSL || false
     },
-    usernameField : config.usernameField || 'username',
-    passwordField : config.passwordField || 'password'
+    usernameField: config.usernameField || "username",
+    passwordField: config.passwordField || "password"
   };
 
   const strategy = new AkeraStrategy(OPTS);
+  const strategyName = config.name || strategy.name;
   passport.use(strategyName, strategy);
   webAuth.addLocalStrategy(strategyName, OPTS);
-  
-  router.all(config.route, function(req, res, next) {
-    passport.authenticate(strategyName, function(err, user, info) {
+
+  router.all(config.route, function (req, res, next) {
+    passport.authenticate(strategyName, function (err, user, info) {
       if (err)
         return next(err);
       if (!user)
-        return next(info || new Error('Invalid credentials.'));
+        return next(info || new Error("Invalid credentials."));
 
       webAuth.successRedirect(req, res, next);
     })(req, res, next);
