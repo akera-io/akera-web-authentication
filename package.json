@@ -1,6 +1,6 @@
 {
-  "name": "akera-web-authentication",
-  "version": "1.0.13",
+  "name": "@akeraio/web-authentication",
+  "version": "2.0.0",
   "description": "Authentication middleware for Akera web service",
   "homepage": "http://akera.io",
   "author": {
@@ -19,19 +19,45 @@
     "url": "https://github.com/akera-io/akera-web-authentication/issues"
   },
   "scripts": {
-    "lint": "./node_modules/.bin/jshint ./lib",
-    "checkStyle": "./node_modules/.bin/jscs ./lib",
-    "test": "npm run-script lint && npm run-script checkStyle"
+    "prepublishOnly": "gulp build && gulp doc",
+    "test": "gulp test",
+    "doc": "gulp doc",
+    "build": "gulp build",
+    "lint": "eslint src/**/* --ext .ts",
+    "lint:fix": "eslint src/**/* --ext .ts --fix"
   },
   "dependencies": {
-    "async": "2.0.1",
-    "passport": "0.3.2",
-    "passport-akera": "1.0.0",
-    "passport-http": "0.3.0",
-    "passport-ldapauth": "0.5.0"
+    "@akeraio/api": "^1.1.12",
+    "@akera/passport": "file:/Users/valentin/Workspace/acorn/akeraio/passport-akera",
+    "async": "^3.2.0",
+    "passport": "^0.4.1",
+    "passport-http": "^0.3.0",
+    "passport-ldapauth": "^2.1.4"
   },
   "devDependencies": {
-    "jshint": ">= 2.6.0",
-    "jscs": ">= 1.11"
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^14.0.20",
+    "@typescript-eslint/eslint-plugin": "^3.6.0",
+    "@typescript-eslint/parser": "^3.6.0",
+    "chai": "^4.2.0",
+    "del": "^5.1.0",
+    "eslint": "^7.4.0",
+    "express": "^4.17.1",
+    "gulp": "^4.0.2",
+    "gulp-istanbul": "^1.1.3",
+    "gulp-mocha": "^7.0.2",
+    "gulp-sequence": "^1.0.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-strip-debug": "^3.0.0",
+    "gulp-typedoc": "^2.2.5",
+    "gulp-typescript": "^5.0.1",
+    "gulp-uglify-es": "^2.0.0",
+    "istanbul": "^0.4.5",
+    "passport": "^0.4.1",
+    "remap-istanbul": "^0.13.0",
+    "ts-node": "^8.10.2",
+    "typedoc": "^0.17.8",
+    "typescript": "^3.9.6"
   }
 }
