@@ -1,6 +1,6 @@
 {
   "name": "@akeraio/web-authentication",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "Authentication middleware for Akera web service",
   "homepage": "http://akera.io",
   "author": {
@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@akeraio/api": "^1.1.12",
-    "@akera/passport": "file:/Users/valentin/Workspace/acorn/akeraio/passport-akera",
+    "@akera/passport": "^1.0.0",
     "async": "^3.2.0",
     "passport": "^0.4.1",
     "passport-http": "^0.3.0",
