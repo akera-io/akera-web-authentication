@@ -1,6 +1,7 @@
 import {BasicStrategy} from "passport-http";
 import {PassportStatic} from "passport";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
+import {Router} from "express";
 
 export interface IHTTPConfig {
   name?: string,
@@ -9,7 +10,7 @@ export interface IHTTPConfig {
   realm: string,
 }
 
-export default function init(config: IHTTPConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
+export default function init(config: IHTTPConfig, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   // basic authentication
   const strategy = new BasicStrategy(
     {

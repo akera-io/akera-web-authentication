@@ -1,7 +1,15 @@
 import {PassportStatic} from "passport";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
+import {Router} from "express";
+import {Strategy as GoogleStrategy} from "passport-google";
+import {Strategy as FacebookStrategy} from "passport-facebook";
 
 type AuthCallback = (profile, cb: (err, user) => void) => void;
+
+const Strategies = {
+  google: GoogleStrategy,
+  facebook: FacebookStrategy,
+}
 
 export interface IOAuthConfig {
   oauthStrategy: string,
@@ -10,37 +18,34 @@ export interface IOAuthConfig {
   route?: any,
   fullRoute?: any,
   authCallback?: AuthCallback,
-  profileAuth: string,
+  profileAuth?: AuthCallback,
   callbackURL: string,
   failureRedirect: string,
 }
 
-export default function init(config: IOAuthConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
+export default function init(config: IOAuthConfig, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.oauthStrategy) {
     throw new Error("Invalid OAuth authentication configuration.");
   }
 
-  const akeraApp = router.__app;
   const strategyName = config.name || "oauth";
-  const Strategy = akeraApp.require(config.oauthStrategy).Strategy;
 
-  config.route = akeraApp.getRoute(config.route || `/${strategyName}/`);
-  config.fullRoute = akeraApp.getRoute(config.route, router);
+  config.route = config.route || `${strategyName}/`;
 
   if (!(config.scope instanceof Array)) {
     config.scope = config.scope.split(" ");
   }
 
   if (config.profileAuth) {
-    config.authCallback = akeraApp.require(config.profileAuth);
+    config.authCallback = config.profileAuth;
     if (typeof config.authCallback !== "function") {
       throw new Error("Invalid profile authorization function.");
     }
   }
 
-  config.callbackURL = `${config.fullRoute}callback`;
+  config.callbackURL = `${config.route}callback`;
 
-  const strategy = new Strategy(config, (accessToken, refreshToken, profile, done) => {
+  const strategy = new Strategies[config.oauthStrategy](config, (accessToken, refreshToken, profile, done) => {
     if (config.authCallback) {
       config.authCallback(profile, (err, user) => done(err, user));
     } else {

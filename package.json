@@ -7,6 +7,7 @@
     "name": "Marian Edu",
     "email": "marian.edu@acorn.ro"
   },
+  "main": "dist/index",
   "license": {
     "type": "MIT",
     "url": "https://github.com/akera-io/akera-web-authentication/raw/master/LICENSE"
@@ -27,18 +28,21 @@
     "lint:fix": "eslint src/**/* --ext .ts --fix"
   },
   "peerDependencies": {
-    "@akeraio/web": "^1.1.4"
+    "@akeraio/api": "^1.1.13",
+    "express": "^4.17.1"
   },
   "dependencies": {
-    "@akeraio/api": "^1.1.12",
     "@akeraio/passport": "^1.0.0",
+    "@akeraio/web-middleware": "^1.0.0",
     "async": "^3.2.0",
     "passport": "^0.4.1",
+    "passport-facebook": "^3.0.0",
+    "passport-google": "^0.3.0",
     "passport-http": "^0.3.0",
     "passport-ldapauth": "^2.1.4"
   },
   "devDependencies": {
-    "@akeraio/web": "^1.1.4",
+    "@akeraio/api": "^1.1.13",
     "@types/chai": "^4.2.11",
     "@types/express-session": "^1.17.0",
     "@types/mocha": "^7.0.2",
@@ -59,7 +63,6 @@
     "gulp-typescript": "^5.0.1",
     "gulp-uglify-es": "^2.0.0",
     "istanbul": "^0.4.5",
-    "passport": "^0.4.1",
     "remap-istanbul": "^0.13.0",
     "ts-node": "^8.10.2",
     "typedoc": "^0.17.8",

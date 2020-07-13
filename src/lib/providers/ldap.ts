@@ -2,8 +2,10 @@ import * as fs from "fs";
 import {PassportStatic} from "passport";
 import LDAPStrategy from "passport-ldapauth";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
+import {Router} from "express";
+import {LogLevel} from "@akeraio/net";
 
-function loadCertificates(tlsOptions, akeraApp) {
+function loadCertificates(tlsOptions, webAuth: AkeraWebAuthentication) {
   try {
     if (tlsOptions.ca) {
       if (typeof tlsOptions.ca === "string")
@@ -15,7 +17,7 @@ function loadCertificates(tlsOptions, akeraApp) {
       }
     }
   } catch (err) {
-    akeraApp.log("warn", "LDAP CA certificate load error: $1", err.message);
+    webAuth.logger.log(LogLevel.warn, "LDAP CA certificate load error: $1", err.message);
   }
 
   return tlsOptions;
@@ -39,12 +41,11 @@ export interface ILDAPConfig {
   }
 }
 
-export default function init(config: ILDAPConfig, router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
+export default function init(config: ILDAPConfig, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.url || !config.bindDn || !config.bindCredentials) {
     throw new Error("LDAP configuration invalid.");
   }
 
-  const akeraApp = router.__app;
   let searchBase = config.searchBase;
 
   if (!searchBase) {
@@ -56,9 +57,6 @@ export default function init(config: ILDAPConfig, router, passport: PassportStat
       throw new Error('LDAP search base or domain need to be set.');
     }
   }
-
-  config.route = akeraApp.getRoute(config.route || "/ldap/");
-  config.fullRoute = akeraApp.getRoute(config.route, router);
 
   const OPTS = {
     server: {
@@ -77,7 +75,7 @@ export default function init(config: ILDAPConfig, router, passport: PassportStat
   };
 
   if (config.tlsOptions) {
-    OPTS.server.tlsOptions = loadCertificates(config.tlsOptions, akeraApp);
+    OPTS.server.tlsOptions = loadCertificates(config.tlsOptions, webAuth);
   }
 
   const strategy = new LDAPStrategy(OPTS);
@@ -94,14 +92,14 @@ export default function init(config: ILDAPConfig, router, passport: PassportStat
         }
 
         if (err) {
-          akeraApp.log("warn", `LDAP authentication error: ${err.message}`);
+          webAuth.logger.log(LogLevel.warn, `LDAP authentication error: ${err.message}`);
           return next(err);
         }
 
         webAuth.successRedirect(req, res, next);
       })(req, res, next);
     } catch (err) {
-      akeraApp.log("error", `Passport authentication error: ${err.message}`);
+      webAuth.logger.log(LogLevel.error, `Passport authentication error: ${err.message}`);
       return next(err);
     }
   });

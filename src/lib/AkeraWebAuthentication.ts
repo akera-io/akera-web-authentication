@@ -1,197 +1,212 @@
-import path from "path";
-import {Request, Response, NextFunction, Router} from "express";
-import {PassportStatic} from "passport";
+import {Express, NextFunction, Request, Response, Router} from "express";
+import passport, {PassportStatic} from "passport";
+import {WebMiddleware} from "@akeraio/web-middleware";
+
+import Strategies from "./providers";
+import {AkeraLogger, ConnectionPool, IBroker, IBrokerConfig, LogLevel} from "@akeraio/api";
+import {IConnection} from "@akeraio/api/dist/lib/Connection";
 
 interface IProvider {
   strategy?: string,
   name?: string,
-  successRedirect?: any,
-  failureRedirect?: any
-  fail?: any,
-  success?: any,
-  error?: any
+  fullRoute?: string,
+  successRedirect?: string,
+  failureRedirect?: string
+
+  url?: string,
+  bindDn?: string,
+  bindCredentials?: string,
+  searchBase?: string,
+  route?: string,
+  clientID?: string,
+  clientSecret?: string,
 }
 
-export default class AkeraWebAuthentication {
-  private strategies: Array<any>;
-  private config: any;
-  private akeraApp: any;
+export interface IAkeraWebConfig {
+  route?: string,
+  fullRoute?: string,
+  logoutRedirect?: string,
+  loginRedirect?: string,
+  successRedirect?: string,
+  failureRedirect?: string,
+  providers?: Array<IProvider>,
+  basic?: IProvider
+}
 
-  static dependencies(): Array<string> {
+export default class AkeraWebAuthentication extends WebMiddleware {
+  private strategies: Array<any>;
+
+  private _router: Router;
+  private _passport: PassportStatic;
+  private _config: IAkeraWebConfig;
+  private _connectionPool: ConnectionPool;
+  private _logger: AkeraLogger;
+
+  get dependencies(): Array<string> {
     return ["@akeraio/web-session"]
   }
 
-  static init(config, router): AkeraWebAuthentication {
-    const instance = new AkeraWebAuthentication();
-    instance.initService(config, router);
-
-    return instance;
+  get logger(): AkeraLogger {
+    return this._logger;
   }
 
-  public constructor(akeraWebApp?, authConfig?) {
-    if (akeraWebApp !== undefined) {
-      // mounted as application level service
-      let AkeraWeb = null;
+  // static init(config: IAkeraWebConfig, router): Router {
+  //   const instance = new AkeraWebAuthentication(config);
+  //   return instance.mount();
+  // }
 
-      try {
-        AkeraWeb = akeraWebApp.require('@akeraio/web');
-      } catch {
-        // NOP
-      }
+  public constructor(config?: IAkeraWebConfig) {
+    super();
+    this._config = config;
+    this._logger = new AkeraLogger(() => ({}));
 
-      if (!AkeraWeb || !(akeraWebApp instanceof AkeraWeb)) {
-        throw new Error("Invalid Akera web service instance.");
-      }
-
-      if (!authConfig || typeof authConfig !== 'object') {
-        throw new Error("Invalid authentication configuration.");
-      }
-
-      this.initService(authConfig, akeraWebApp.router);
+    if (!this._config || !(this._config.providers instanceof Array) || this._config.providers.length === 0) {
+      throw new Error("Invalid authentication service configuration.");
     }
   }
 
-  public initService(config, router): void {
-    if (!router || !router.__app || typeof router.__app.require !== "function") {
-      throw new Error("Invalid Akera web service router.");
+  public mount(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, logger?: AkeraLogger): Router {
+    if (this._router) {
+      return this._router;
     }
 
-    const akeraApp = router.__app;
-
-    if (!config || !(config.providers instanceof Array) || config.providers.length === 0) {
-      throw new Error('Invalid authentication service configuration.');
-    }
-
-    const passport = akeraApp.require("passport");
-    const express = akeraApp.require("express");
-    const authRouter = express.Router({
+    this._router = Router({
       mergeParams: true
     });
 
-    const authRoute = akeraApp.getRoute(config.route || '/auth/');
-    authRouter.__route = akeraApp.getRoute(authRoute, router);
-    authRouter.__broker = router.__broker;
-    authRouter.__app = akeraApp;
+    this.init(brokerConfig, this._router, logger);
+    return this._router;
+  }
 
-    config.successRedirect = config.successRedirect || router.__route;
-    config.failureRedirect = config.failureRedirect || config.loginRedirect;
-    config.loginRedirect = config.loginRedirect || config.failureRedirect;
+  public init(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, router: Router, logger?: AkeraLogger): void {
+    if (!this._passport) {
+      this._passport = passport;
+    }
 
-    this.config = config;
-    this.akeraApp = akeraApp;
+    if (logger) {
+      this._logger = logger;
+    }
 
-    passport.serializeUser((user, cb) => {
+    this.initConnectionPool(brokerConfig, this._logger);
+
+    this._passport.serializeUser((user, cb) => {
       cb(null, user);
     });
 
-    passport.deserializeUser((user, cb) => {
+    this._passport.deserializeUser((user, cb) => {
       cb(null, user);
     });
 
-    akeraApp.log('debug', 'Authentication route: ' + authRouter.__route);
+    this._config.successRedirect = this._config.successRedirect || "";
+    this._config.failureRedirect = this._config.failureRedirect || this._config.loginRedirect;
+    this._config.loginRedirect = this._config.loginRedirect || this._config.failureRedirect;
 
-    config.providers.forEach((provider: IProvider) => {
-      provider.successRedirect = config.successRedirect;
-      provider.failureRedirect = config.failureRedirect;
+    for (const provider of this._config.providers) {
+      provider.successRedirect = this._config.successRedirect;
+      provider.failureRedirect = this._config.failureRedirect;
 
       const strategyName = provider.name || provider.strategy;
 
-      akeraApp.log('info', `Authentication provider: ${provider.strategy} [${strategyName}]`);
+      this._logger.log(LogLevel.info, `Authentication provider: ${provider.strategy} [${strategyName}]`);
       try {
-        this.useProvider(provider, authRouter, passport);
+        this.useProvider(provider, router, this._passport);
       } catch (err) {
-        akeraApp.log('error', err.message);
+        this._logger.log(LogLevel.error, err.message);
       }
-    });
-
-    // basic http auth
-    if (config.basic !== undefined) {
-      if (typeof config.basic !== 'object') {
-        config.basic = {};
-      }
-
-      config.basic.strategy = 'http';
-
-      this.useProvider(config.basic, router, passport);
     }
 
-    // initialize passport and session on akera's express app
-    akeraApp.app.use(passport.initialize());
-    akeraApp.app.use(passport.session());
+    // basic http auth
+    if (this._config.basic !== undefined) {
+      if (typeof this._config.basic !== "object") {
+        this._config.basic = {};
+      }
 
-    authRouter.all('/logout', this.logout);
+      this._config.basic.strategy = "http";
+      this.useProvider(this._config.basic, router, passport);
+    }
 
-    router.use(authRoute, authRouter);
+    router.all("/logout", this.logout);
     router.use(this.requireAuthentication);
   }
 
-  isAuthenticated(req: Request): boolean {
+  public initPassport(app: Express) {
+    app.use(this._passport.initialize());
+    app.use(this._passport.session());
+  }
+
+  public get passport() {
+    return this._passport;
+  }
+
+  public getConnection(alias?: string): Promise<IConnection> {
+    return this._connectionPool.getConnection(alias);
+  }
+
+  public isAuthenticated(req: Request): boolean {
     return req && req.session && !!(req.session.user || req.session.get('user'));
   }
 
-  requireAuthentication(req: Request, res: Response, next: NextFunction): void {
-    if (this.isAuthenticated(req))
+  public requireAuthentication(req: Request, res: Response, next: NextFunction): void {
+    if (this.isAuthenticated(req)) {
       next();
-    else {
-      let loginRedirect = this.config.loginRedirect;
-
-      if (!loginRedirect && this.config.providers.length === 1) {
-        loginRedirect = this.config.providers[0].fullRoute;
-      }
-
-      if (loginRedirect) {
-        if (loginRedirect !== req.originalUrl) {
-          if (req.session) {
-            req.session.authOriginalUrl = req.originalUrl;
-          }
-          res.redirect(loginRedirect);
-        } else {
-          next();
-        }
-        return;
-      }
-
-      throw new Error('Not authenticated.');
+      return;
     }
+
+    let loginRedirect = this._config.loginRedirect;
+    if (!loginRedirect && this._config.providers.length === 1) {
+      loginRedirect = this._config.providers[0].fullRoute;
+    }
+
+    if (!loginRedirect) {
+      throw new Error("Not authenticated.");
+    }
+
+    if (loginRedirect === req.originalUrl) {
+      next();
+      return;
+    }
+
+    if (req.session) {
+      req.session.authOriginalUrl = req.originalUrl;
+    }
+    res.redirect(loginRedirect);
   }
 
-  logout(req: Request, res: Response): void {
+  public logout(req: Request, res: Response): void {
     try {
       req.logout();
-      req.session.set('user');
+      req.session.set("user");
     } catch {
       // NOP
     }
 
-    const logoutRedirect = this.config.logoutRedirect || this.config.loginRedirect || '/';
-    res.redirect(logoutRedirect);
+    res.redirect(this._config.logoutRedirect || this._config.loginRedirect || '/');
   }
 
-  useProvider(provider: IProvider, router: Router, passport: PassportStatic): void {
-    if (!provider.strategy)
-      throw new Error('Authentication provider strategy not set.');
+  public useProvider(provider: IProvider, router: Router, passport: PassportStatic): void {
+    if (!provider.strategy) {
+      throw new Error("Authentication provider strategy not set.");
+    }
 
-    let strategy = null;
-
-    try {
-      strategy = require(path.join(__dirname, 'providers', provider.strategy.toLowerCase()));
-    } catch (e) {
+    if (Object.keys(Strategies).indexOf(provider.strategy.toLowerCase()) < 0) {
       throw new Error(`Authentication provider not found for: ${provider.strategy}`);
     }
 
     try {
+      const strategy = Strategies[provider.strategy.toLowerCase()];
       strategy(provider, router, passport, this);
     } catch (e) {
       throw new Error(`Authentication provider initialization error for: ${provider.strategy}`);
     }
   }
 
-  successRedirect(req: Request, res: Response, next: NextFunction): void {
+  public successRedirect(req: Request, res: Response, next: NextFunction): void {
     this.setUser(req, req.user);
 
     if (res) {
-      const successRedirect = (req && req.session && req.session.authOriginalUrl) ? req.session.authOriginalUrl
-        : this.config.successRedirect;
+      const successRedirect = (req && req.session && req.session.authOriginalUrl)
+        ? req.session.authOriginalUrl
+        : this._config.successRedirect;
 
       return res.redirect(successRedirect);
     }
@@ -201,9 +216,10 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  failureRedirect(req: Request, res: Response, next?: NextFunction): void {
-    if (req && res && this.config && this.config.failureRedirect) {
-      res.redirect(this.config.failureRedirect);
+  public failureRedirect(req: Request, res: Response, next?: NextFunction): void {
+    if (req && res && this._config && this._config.failureRedirect) {
+      res.redirect(this._config.failureRedirect);
+      return;
     }
 
     if (typeof next === 'function') {
@@ -211,11 +227,11 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  getUrl(req: Request): string {
+  public getUrl(req: Request): string {
     return `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   }
 
-  setUser(req: Request, user: any): void {
+  public setUser(req: Request, user: any): void {
     if (req && user && req.session) {
       if (typeof req.session.set === 'function') {
         req.session.set('user', user);
@@ -225,7 +241,7 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  addLocalStrategy(name: string, options: any): void {
+  public addLocalStrategy(name: string, options: any): void {
     this.strategies = this.strategies || [];
 
     const found = this.strategies.filter(function (strategy) {
@@ -240,7 +256,16 @@ export default class AkeraWebAuthentication {
     }
   }
 
-  getLocalStrategies(): Array<any> {
+  public getLocalStrategies(): Array<any> {
     return this.strategies;
+  }
+
+  private initConnectionPool(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, logger?: AkeraLogger) {
+    if (brokerConfig instanceof ConnectionPool) {
+      this._connectionPool = brokerConfig;
+      return;
+    }
+
+    this._connectionPool = new ConnectionPool(brokerConfig, logger);
   }
 }
