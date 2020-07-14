@@ -5,6 +5,14 @@ import {Router} from "express";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
 import {IHTTPProvider} from "../ProviderInterfaces";
 
+/**
+ * passport-http authentication strategy initialization function.
+ *
+ * @param config The configuration parameters used for the strategy.
+ * @param router The router on which we attach the strategy.
+ * @param passport The passport instance used for authentication.
+ * @param webAuth The reference to the @akeraio/web-auth middleware.
+ */
 export default function init(config: IHTTPProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   // basic authentication
   const strategy = new BasicStrategy(

@@ -7,31 +7,101 @@ import Strategies from "./providers";
 import {IProvider} from "./ProviderInterfaces";
 import {IWebMiddleware} from "@akeraio/web-middleware/dist";
 
+/**
+ * Configuration parameters used by the @akeraio/web-auth middleware.
+ */
 export interface IAkeraWebConfig {
+  /**
+   * The route where the middleware will be mounted.
+   */
   route?: string,
+  /**
+   * The full path of the route where the middleware will be mounted.
+   */
   fullRoute?: string,
+  /**
+   * Path used to redirect the user after logout.
+   */
   logoutRedirect?: string,
+  /**
+   * Path used to redirect the user after login.
+   */
   loginRedirect?: string,
+  /**
+   * Path used to redirect the user after a successful authentication.
+   */
   successRedirect?: string,
+  /**
+   * Path used to redirect the user after a failed authentication.
+   */
   failureRedirect?: string,
+  /**
+   * A list with providers that will be registered into the application.
+   */
   providers?: Array<IProvider>,
+  /**
+   * Basic authentication provider configuration.
+   */
   basic?: IProvider
 }
 
+/**
+ * Strategy definition interface. Use this interface when you
+ * want to register a new strategy into the authentication middleware.
+ */
 export interface IStrategy {
+  /**
+   * The name of the strategy.
+   */
   name: string,
+  /**
+   * Options passed to the strategy.
+   */
   options: any
 }
 
+/**
+ * Logger function that can be called from the AkeraWebAuthentication middleware.
+ *
+ * @param level The level of the message.
+ * @param message The message to be logged.
+ */
 type LoggerFunction = (level: LogLevel, message: string) => void;
 
+/**
+ * Middleware class that provides an authentication system for the akera web package.
+ */
 export default class AkeraWebAuthentication extends WebMiddleware implements IWebMiddleware {
-  private strategies: Array<IStrategy>;
+  /**
+   * A list with strategies loaded into the system.
+   */
+  private _strategies: Array<IStrategy>;
 
+  /**
+   * The router exposed by this middleware.
+   */
   private _router: Router;
+
+  /**
+   * The passport instance used by the Web Authentication middleware.
+   */
   private _passport: PassportStatic;
+
+  /**
+   * The configuration used by this middleware.
+   */
   private _config: IAkeraWebConfig;
+
+  /**
+   * An akera server connection pool that can be used to connect to the backend.
+   */
   private _connectionPool: ConnectionPool;
+
+  /**
+   * The logger wrapper. Based on what configuration parameters are used
+   * this function can be taken either from ConnectionPool or from the
+   * ConnectionPoolOptions.
+   */
   private _logger: LoggerFunction;
 
   /**
@@ -45,10 +115,20 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     return ["@akeraio/web-session"]
   }
 
+  /**
+   * Returns the logger function to be used where logging is required.
+   */
   get log(): LoggerFunction {
     return this._logger;
   }
 
+  /**
+   * @akeraio/web-auth middleware constructor.
+   *
+   * @throws Error
+   *
+   * @param [config] The configuration used by this middleware.
+   */
   public constructor(config?: IAkeraWebConfig) {
     super();
     this._config = config;
@@ -133,19 +213,39 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     return this._router;
   }
 
+  /**
+   * Initializes the passport middleware application wide.
+   *
+   * @param app A reference to the express application.
+   */
   public initPassport(app: Express): void {
     app.use(this._passport.initialize());
     app.use(this._passport.session());
   }
 
+  /**
+   * Returns the passport instance.
+   */
   public get passport(): PassportStatic {
     return this._passport;
   }
 
+  /**
+   * Checks if the request is authenticated or not.
+   *
+   * @param req The request object.
+   */
   public isAuthenticated(req: Request): boolean {
     return req && req.session && !!(req.session.user || req.session.get('user'));
   }
 
+  /**
+   * Forces the request to be authenticated.
+   *
+   * @param req The request object.
+   * @param res The response object.
+   * @param next A reference to the next function that will be called.
+   */
   public requireAuthentication(req: Request, res: Response, next: NextFunction): void {
     if (this.isAuthenticated(req)) {
       next();
@@ -172,6 +272,13 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     res.redirect(loginRedirect);
   }
 
+  /**
+   * Logs the user out of the application and redirects him to the
+   * configured page (logoutRedirect, loginRedirect or "/").
+   *
+   * @param req The request object.
+   * @param res The response object.
+   */
   public logout(req: Request, res: Response): void {
     try {
       req.logout();
@@ -183,6 +290,14 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     res.redirect(this._config.logoutRedirect || this._config.loginRedirect || '/');
   }
 
+  /**
+   * Registers a strategy provider that can be used in the application to authenticate
+   * users.
+   *
+   * @param provider The provider configuration.
+   * @param router The router on which we mount the provider.
+   * @param passport The passport instance.
+   */
   public useProvider(provider: IProvider, router: Router, passport: PassportStatic): void {
     if (!provider.strategy) {
       throw new Error("Authentication provider strategy not set.");
@@ -200,6 +315,13 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     }
   }
 
+  /**
+   * Successful Authentication redirect route middleware.
+   *
+   * @param req The request object.
+   * @param res The response object.
+   * @param next A reference to the next function that will be called.
+   */
   public successRedirect(req: Request, res: Response, next: NextFunction): void {
     this.setUser(req, req.user);
 
@@ -216,6 +338,13 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     }
   }
 
+  /**
+   * Failed Authentication redirect route middleware.
+   *
+   * @param req The request object.
+   * @param res The response object.
+   * @param next A reference to the next function that will be called.
+   */
   public failureRedirect(req: Request, res: Response, next?: NextFunction): void {
     if (req && res && this._config && this._config.failureRedirect) {
       res.redirect(this._config.failureRedirect);
@@ -227,10 +356,21 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     }
   }
 
+  /**
+   * Returns the full URL of the request.
+   *
+   * @param req The request object.
+   */
   public getUrl(req: Request): string {
     return `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   }
 
+  /**
+   * Sets the user onto the session.
+   *
+   * @param req The request object.
+   * @param user The user that will be set onto the session.
+   */
   public setUser(req: Request, user: any): void {
     if (req && user && req.session) {
       if (typeof req.session.set === 'function') {
@@ -241,25 +381,39 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     }
   }
 
+  /**
+   * Adds a strategy to the list of loaded authentication strategies.
+   *
+   * @param name The name of the strategy.
+   * @param options The options used to register the strategy.
+   */
   public addLocalStrategy(name: string, options: any): void {
-    this.strategies = this.strategies || [];
+    this._strategies = this._strategies || [];
 
-    const found = this.strategies.filter(function (strategy) {
+    const found = this._strategies.filter(function (strategy) {
       return strategy.name === name;
     });
 
     if (!found || found.length === 0) {
-      this.strategies.push({
+      this._strategies.push({
         name,
         options
       });
     }
   }
 
+  /**
+   * Returns the loaded strategies.
+   */
   public getLocalStrategies(): Array<IStrategy> {
-    return this.strategies;
+    return this._strategies;
   }
 
+  /**
+   * Initializes the backend broker connection pool available in the middleware.
+   *
+   * @param brokerConfig The ConnectionPoolOptions object or the actual ConnectionPool.
+   */
   private initConnectionPool(brokerConfig: ConnectionPoolOptions | ConnectionPool): void {
     if (brokerConfig instanceof ConnectionPool) {
       this._connectionPool = brokerConfig;

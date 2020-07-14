@@ -10,6 +10,14 @@ const Strategies = {
   facebook: FacebookStrategy,
 }
 
+/**
+ * OAuth authentication strategy initialization function.
+ *
+ * @param config The configuration parameters used for the strategy.
+ * @param router The router on which we attach the strategy.
+ * @param passport The passport instance used for authentication.
+ * @param webAuth The reference to the @akeraio/web-auth middleware.
+ */
 export default function init(config: IOAuthProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.oauthStrategy) {
     throw new Error("Invalid OAuth authentication configuration.");

@@ -5,6 +5,14 @@ import {Router} from "express";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
 import {IAkeraProvider} from "../ProviderInterfaces";
 
+/**
+ * @akeraio/passport authentication strategy initialization function.
+ *
+ * @param config The configuration parameters used for the strategy.
+ * @param router The router on which we attach the strategy.
+ * @param passport The passport instance used for authentication.
+ * @param webAuth The reference to the @akeraio/web-auth middleware.
+ */
 export default async function init(config: IAkeraProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): Promise<void> {
   if (!config || !config.host || !config.port) {
     throw new Error("Invalid Akera authentication configuration.");
