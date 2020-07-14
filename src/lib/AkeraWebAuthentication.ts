@@ -95,14 +95,14 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
    * The middleware has no responsability to load the dependencies
    * by itself.
    */
-  getDependencies(): Array<string> {
+  public getDependencies(): Array<string> {
     return ["@akeraio/web-session"]
   }
 
   /**
    * Logs a message into the log file.
    */
-  log(level: LogLevel, message: string): void {
+  public log(level: LogLevel, message: string): void {
     this._connectionPool.log(message, level);
   }
 
