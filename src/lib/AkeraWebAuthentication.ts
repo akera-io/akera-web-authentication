@@ -60,14 +60,6 @@ export interface IStrategy {
 }
 
 /**
- * Logger function that can be called from the AkeraWebAuthentication middleware.
- *
- * @param level The level of the message.
- * @param message The message to be logged.
- */
-type LoggerFunction = (level: LogLevel, message: string) => void;
-
-/**
  * Middleware class that provides an authentication system for the akera web package.
  */
 export default class AkeraWebAuthentication extends WebMiddleware implements IWebMiddleware {
@@ -97,13 +89,6 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
   private _connectionPool: ConnectionPool;
 
   /**
-   * The logger wrapper. Based on what configuration parameters are used
-   * this function can be taken either from ConnectionPool or from the
-   * ConnectionPoolOptions.
-   */
-  private _logger: LoggerFunction;
-
-  /**
    * The list of dependencies on other akera.io web middleware
    * modules that needs to be loaded/mounted before.
    *
@@ -115,10 +100,10 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
   }
 
   /**
-   * Returns the logger function to be used where logging is required.
+   * Logs a message into the log file.
    */
-  get log(): LoggerFunction {
-    return this._logger;
+  log(level: LogLevel, message: string): void {
+    this._connectionPool.log(message, level);
   }
 
   /**
@@ -156,14 +141,6 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
 
     if (!this._passport) {
       this._passport = passport;
-    }
-
-    if (config instanceof ConnectionPool) {
-      this._logger = (level: LogLevel, message: string) => config.log(message, level);
-    } else if ("logger" in config) {
-      this._logger = config.logger.log;
-    } else {
-      this._logger = () => ({});
     }
 
     this.initConnectionPool(config);
