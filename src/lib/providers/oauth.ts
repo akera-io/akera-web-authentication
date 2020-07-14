@@ -6,10 +6,12 @@ import {IOAuthProvider} from "../ProviderInterfaces";
 /**
  * OAuth authentication strategy initialization function.
  *
+ * @alias oauth.init
+ *
  * @param config The configuration parameters used for the strategy.
  * @param router The router on which we attach the strategy.
  * @param passport The passport instance used for authentication.
- * @param webAuth The reference to the @akeraio/web-auth middleware.
+ * @param webAuth The reference to the @akeraio/web-authentication middleware.
  */
 export default async function init(config: IOAuthProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): Promise<void> {
   if (!config || !config.oauthStrategy) {

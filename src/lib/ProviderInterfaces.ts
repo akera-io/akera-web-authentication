@@ -1,6 +1,6 @@
 /**
  * The base configuration properties available for each
- * authentication provider used by the @akeraio/web-auth middleware.
+ * authentication provider used by the @akeraio/web-authentication middleware.
  */
 export interface IProvider {
   /**

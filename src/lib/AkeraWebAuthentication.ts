@@ -7,7 +7,7 @@ import Strategies from "./providers";
 import {IProvider} from "./ProviderInterfaces";
 
 /**
- * Configuration parameters used by the @akeraio/web-auth middleware.
+ * Configuration parameters used by the @akeraio/web-authentication middleware.
  */
 export interface IAkeraWebConfig {
   /**
@@ -122,7 +122,7 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
   }
 
   /**
-   * @akeraio/web-auth middleware constructor.
+   * @akeraio/web-authentication middleware constructor.
    *
    * @throws Error
    *

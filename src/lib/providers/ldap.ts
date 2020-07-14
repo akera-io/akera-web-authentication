@@ -10,8 +10,10 @@ import {ILDAPProvider} from "../ProviderInterfaces";
 /**
  * Function to load the certificates defined in TLSOptions.
  *
+ * @alias ldap.loadCertificates
+ *
  * @param tlsOptions The options used for TLS/SSL configuration.
- * @param webAuth A reference to the @akeraio/web-auth middleware.
+ * @param webAuth A reference to the @akeraio/web-authentication middleware.
  */
 function loadCertificates(tlsOptions, webAuth: AkeraWebAuthentication) {
   try {
@@ -34,10 +36,12 @@ function loadCertificates(tlsOptions, webAuth: AkeraWebAuthentication) {
 /**
  * passport-ldap authentication strategy initialization function.
  *
+ * @alias ldap.init
+ *
  * @param config The configuration parameters used for the strategy.
  * @param router The router on which we attach the strategy.
  * @param passport The passport instance used for authentication.
- * @param webAuth The reference to the @akeraio/web-auth middleware.
+ * @param webAuth The reference to the @akeraio/web-authentication middleware.
  */
 export default function init(config: ILDAPProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
   if (!config || !config.url || !config.bindDn || !config.bindCredentials) {
