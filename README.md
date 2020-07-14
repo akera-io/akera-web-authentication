@@ -13,15 +13,6 @@ $ npm install @akeraio/web-authentication
   * [Website and Documentation](http://akera.io/)
 
 
-## Tests
-
-  To run the test suite, first install the dependencies, then run `npm test`:
-
-```bash
-$ npm install
-$ npm test
-```
-
 ## Quick Start
 
   This module is designed to be loaded as application level service which 

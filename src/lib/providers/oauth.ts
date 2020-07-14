@@ -1,14 +1,7 @@
 import {PassportStatic} from "passport";
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
 import {Router} from "express";
-import {Strategy as GoogleStrategy} from "passport-google";
-import {Strategy as FacebookStrategy} from "passport-facebook";
 import {IOAuthProvider} from "../ProviderInterfaces";
-
-const Strategies = {
-  google: GoogleStrategy,
-  facebook: FacebookStrategy,
-}
 
 /**
  * OAuth authentication strategy initialization function.
@@ -18,7 +11,7 @@ const Strategies = {
  * @param passport The passport instance used for authentication.
  * @param webAuth The reference to the @akeraio/web-auth middleware.
  */
-export default function init(config: IOAuthProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): void {
+export default async function init(config: IOAuthProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): Promise<void> {
   if (!config || !config.oauthStrategy) {
     throw new Error("Invalid OAuth authentication configuration.");
   }
@@ -40,7 +33,10 @@ export default function init(config: IOAuthProvider, router: Router, passport: P
 
   config.callbackURL = `${config.route}callback`;
 
-  const strategy = new Strategies[config.oauthStrategy](config, (accessToken, refreshToken, profile, done) => {
+  const StrategyModule = await import(config.oauthStrategy);
+  const Strategy = StrategyModule.Strategy;
+
+  const strategy = new Strategy(config, (accessToken, refreshToken, profile, done) => {
     if (config.authCallback) {
       config.authCallback(profile, (err, user) => done(err, user));
     } else {
