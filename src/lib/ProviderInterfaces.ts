@@ -10,7 +10,7 @@ export interface IProvider {
   /**
    * The name of the strategy.
    */
-  strategy?: string,
+  strategy: string,
   /**
    * The route where the provider will be mounted.
    */

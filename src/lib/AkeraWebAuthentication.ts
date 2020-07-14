@@ -1,11 +1,10 @@
 import {Express, NextFunction, Request, Response, Router} from "express";
 import passport, {PassportStatic} from "passport";
-import {WebMiddleware} from "@akeraio/web-middleware";
+import {WebMiddleware, IWebMiddleware} from "@akeraio/web-middleware";
 import {ConnectionPool, ConnectionPoolOptions, LogLevel} from "@akeraio/api";
 
 import Strategies from "./providers";
 import {IProvider} from "./ProviderInterfaces";
-import {IWebMiddleware} from "@akeraio/web-middleware/dist";
 
 /**
  * Configuration parameters used by the @akeraio/web-auth middleware.
@@ -200,7 +199,8 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
     if (this._config.basic !== undefined) {
       if (typeof this._config.basic !== "object") {
         this._config.basic = {
-          name: "basic"
+          name: "basic",
+          strategy: "http"
         };
       }
 
