@@ -28,12 +28,12 @@
     "lint:fix": "eslint src/**/* --ext .ts --fix"
   },
   "peerDependencies": {
-    "@akeraio/api": "^1.1.13",
+    "@akeraio/api": "^1.1.14",
     "express": "^4.17.1"
   },
   "dependencies": {
     "@akeraio/passport": "^1.0.0",
-    "@akeraio/web-middleware": "^1.0.0",
+    "@akeraio/web-middleware": "^1.0.1",
     "async": "^3.2.0",
     "passport": "^0.4.1",
     "passport-facebook": "^3.0.0",
@@ -42,13 +42,13 @@
     "passport-ldapauth": "^2.1.4"
   },
   "devDependencies": {
-    "@akeraio/api": "^1.1.13",
+    "@akeraio/api": "^1.1.14",
     "@types/chai": "^4.2.11",
     "@types/express-session": "^1.17.0",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^14.0.20",
-    "@typescript-eslint/eslint-plugin": "^3.6.0",
-    "@typescript-eslint/parser": "^3.6.0",
+    "@types/node": "^14.0.23",
+    "@typescript-eslint/eslint-plugin": "^3.6.1",
+    "@typescript-eslint/parser": "^3.6.1",
     "chai": "^4.2.0",
     "del": "^5.1.0",
     "eslint": "^7.4.0",

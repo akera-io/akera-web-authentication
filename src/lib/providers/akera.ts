@@ -3,46 +3,27 @@ import {PassportStatic} from "passport";
 import {Router} from "express";
 
 import AkeraWebAuthentication from "../AkeraWebAuthentication";
-import {IBroker} from "@akeraio/api";
+import {IAkeraProvider} from "../ProviderInterfaces";
 
-export interface IAkeraConfig {
-  name?: string,
-  route?: any,
-  host?: string,
-  port?: number,
-  useSSL?: boolean,
-  usernameField?: string,
-  passwordField?: string,
-  broker?: IBroker
-}
-
-export default async function init(config: IAkeraConfig, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): Promise<void> {
-  // broker configuration required for api authentication
-  let broker;
-  let server;
-
+export default async function init(config: IAkeraProvider, router: Router, passport: PassportStatic, webAuth: AkeraWebAuthentication): Promise<void> {
   if (!config || !config.host || !config.port) {
-    broker = await webAuth.getConnection();
-  } else {
-    server = {
+    throw new Error("Invalid Akera authentication configuration.");
+  }
+  const options = {
+    server: {
       host: config.host,
       port: config.port,
       useSSL: config.useSSL || false
-    };
-  }
-
-  const OPTS = {
-    broker,
-    server,
+    },
     usernameField: config.usernameField || "username",
     passwordField: config.passwordField || "password"
-  };
+  }
 
-  const strategy = new AkeraStrategy(OPTS, () => ({}));
+  const strategy = new AkeraStrategy(options, () => ({}));
 
   const strategyName = config.name || strategy.name;
   passport.use(strategyName, strategy);
-  webAuth.addLocalStrategy(strategyName, OPTS);
+  webAuth.addLocalStrategy(strategyName, options);
 
   router.all(config.route, function (req, res, next) {
     passport.authenticate(strategyName, function (err, user, info) {

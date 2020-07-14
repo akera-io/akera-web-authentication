@@ -1,26 +1,10 @@
 import {Express, NextFunction, Request, Response, Router} from "express";
 import passport, {PassportStatic} from "passport";
 import {WebMiddleware} from "@akeraio/web-middleware";
+import {AkeraLogger, ConnectionPool, ConnectionPoolOptions, LogLevel} from "@akeraio/api";
 
 import Strategies from "./providers";
-import {AkeraLogger, ConnectionPool, IBroker, IBrokerConfig, LogLevel} from "@akeraio/api";
-import {IConnection} from "@akeraio/api/dist/lib/Connection";
-
-interface IProvider {
-  strategy?: string,
-  name?: string,
-  fullRoute?: string,
-  successRedirect?: string,
-  failureRedirect?: string
-
-  url?: string,
-  bindDn?: string,
-  bindCredentials?: string,
-  searchBase?: string,
-  route?: string,
-  clientID?: string,
-  clientSecret?: string,
-}
+import {IProvider} from "./ProviderInterfaces";
 
 export interface IAkeraWebConfig {
   route?: string,
@@ -33,8 +17,13 @@ export interface IAkeraWebConfig {
   basic?: IProvider
 }
 
+export interface IStrategy {
+  name: string,
+  options: any
+}
+
 export default class AkeraWebAuthentication extends WebMiddleware {
-  private strategies: Array<any>;
+  private strategies: Array<IStrategy>;
 
   private _router: Router;
   private _passport: PassportStatic;
@@ -50,11 +39,6 @@ export default class AkeraWebAuthentication extends WebMiddleware {
     return this._logger;
   }
 
-  // static init(config: IAkeraWebConfig, router): Router {
-  //   const instance = new AkeraWebAuthentication(config);
-  //   return instance.mount();
-  // }
-
   public constructor(config?: IAkeraWebConfig) {
     super();
     this._config = config;
@@ -65,7 +49,7 @@ export default class AkeraWebAuthentication extends WebMiddleware {
     }
   }
 
-  public mount(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, logger?: AkeraLogger): Router {
+  public mount(brokerConfig: ConnectionPoolOptions | ConnectionPool, logger?: AkeraLogger): Router {
     if (this._router) {
       return this._router;
     }
@@ -74,11 +58,6 @@ export default class AkeraWebAuthentication extends WebMiddleware {
       mergeParams: true
     });
 
-    this.init(brokerConfig, this._router, logger);
-    return this._router;
-  }
-
-  public init(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, router: Router, logger?: AkeraLogger): void {
     if (!this._passport) {
       this._passport = passport;
     }
@@ -87,7 +66,7 @@ export default class AkeraWebAuthentication extends WebMiddleware {
       this._logger = logger;
     }
 
-    this.initConnectionPool(brokerConfig, this._logger);
+    this.initConnectionPool(brokerConfig);
 
     this._passport.serializeUser((user, cb) => {
       cb(null, user);
@@ -109,7 +88,8 @@ export default class AkeraWebAuthentication extends WebMiddleware {
 
       this._logger.log(LogLevel.info, `Authentication provider: ${provider.strategy} [${strategyName}]`);
       try {
-        this.useProvider(provider, router, this._passport);
+        this.useProvider(provider, this._router, this._passport);
+        provider.fullRoute = provider.route;
       } catch (err) {
         this._logger.log(LogLevel.error, err.message);
       }
@@ -118,28 +98,27 @@ export default class AkeraWebAuthentication extends WebMiddleware {
     // basic http auth
     if (this._config.basic !== undefined) {
       if (typeof this._config.basic !== "object") {
-        this._config.basic = {};
+        this._config.basic = {
+          name: "basic"
+        };
       }
 
       this._config.basic.strategy = "http";
-      this.useProvider(this._config.basic, router, passport);
+      this.useProvider(this._config.basic, this._router, this._passport);
     }
 
-    router.all("/logout", this.logout);
-    router.use(this.requireAuthentication);
+    this._router.all("/logout", this.logout);
+    this._router.use(this.requireAuthentication);
+    return this._router;
   }
 
-  public initPassport(app: Express) {
+  public initPassport(app: Express): void {
     app.use(this._passport.initialize());
     app.use(this._passport.session());
   }
 
-  public get passport() {
+  public get passport(): PassportStatic {
     return this._passport;
-  }
-
-  public getConnection(alias?: string): Promise<IConnection> {
-    return this._connectionPool.getConnection(alias);
   }
 
   public isAuthenticated(req: Request): boolean {
@@ -250,22 +229,22 @@ export default class AkeraWebAuthentication extends WebMiddleware {
 
     if (!found || found.length === 0) {
       this.strategies.push({
-        name: name,
-        options: options
+        name,
+        options
       });
     }
   }
 
-  public getLocalStrategies(): Array<any> {
+  public getLocalStrategies(): Array<IStrategy> {
     return this.strategies;
   }
 
-  private initConnectionPool(brokerConfig: IBroker | IBrokerConfig | ConnectionPool, logger?: AkeraLogger) {
+  private initConnectionPool(brokerConfig: ConnectionPoolOptions | ConnectionPool): void {
     if (brokerConfig instanceof ConnectionPool) {
       this._connectionPool = brokerConfig;
       return;
     }
 
-    this._connectionPool = new ConnectionPool(brokerConfig, logger);
+    this._connectionPool = new ConnectionPool(brokerConfig);
   }
 }
