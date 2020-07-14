@@ -1,7 +1,7 @@
 import {Express, NextFunction, Request, Response, Router} from "express";
 import passport, {PassportStatic} from "passport";
 import {WebMiddleware} from "@akeraio/web-middleware";
-import {AkeraLogger, ConnectionPool, ConnectionPoolOptions, LogLevel} from "@akeraio/api";
+import {ConnectionPool, ConnectionPoolOptions, LogLevel} from "@akeraio/api";
 
 import Strategies from "./providers";
 import {IProvider} from "./ProviderInterfaces";
@@ -23,6 +23,8 @@ export interface IStrategy {
   options: any
 }
 
+type LoggerFunction = (level: LogLevel, message: string) => void;
+
 export default class AkeraWebAuthentication extends WebMiddleware implements IWebMiddleware {
   private strategies: Array<IStrategy>;
 
@@ -30,27 +32,41 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
   private _passport: PassportStatic;
   private _config: IAkeraWebConfig;
   private _connectionPool: ConnectionPool;
-  private _logger: AkeraLogger;
+  private _logger: LoggerFunction;
 
+  /**
+   * The list of dependencies on other akera.io web middleware
+   * modules that needs to be loaded/mounted before.
+   *
+   * The middleware has no responsability to load the dependencies
+   * by itself.
+   */
   getDependencies(): Array<string> {
     return ["@akeraio/web-session"]
   }
 
-  get logger(): AkeraLogger {
+  get log(): LoggerFunction {
     return this._logger;
   }
 
   public constructor(config?: IAkeraWebConfig) {
     super();
     this._config = config;
-    this._logger = new AkeraLogger(() => ({}));
 
     if (!this._config || !(this._config.providers instanceof Array) || this._config.providers.length === 0) {
       throw new Error("Invalid authentication service configuration.");
     }
   }
 
-  public mount(brokerConfig: ConnectionPoolOptions | ConnectionPool, logger?: AkeraLogger): Router {
+  /**
+   * Mount the middleware using the connection information provided
+   * and return an [Express](https://expressjs.com) Router.
+   *
+   * @param config The connection information, can be either a single
+   *               or multiple brokers if middleware is to be mounted
+   *               at application level.
+   */
+  public mount(config: ConnectionPoolOptions | ConnectionPool): Router {
     if (this._router) {
       return this._router;
     }
@@ -63,11 +79,15 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
       this._passport = passport;
     }
 
-    if (logger) {
-      this._logger = logger;
+    if (config instanceof ConnectionPool) {
+      this._logger = (level: LogLevel, message: string) => config.log(message, level);
+    } else if ("logger" in config) {
+      this._logger = config.logger.log;
+    } else {
+      this._logger = () => ({});
     }
 
-    this.initConnectionPool(brokerConfig);
+    this.initConnectionPool(config);
 
     this._passport.serializeUser((user, cb) => {
       cb(null, user);
@@ -87,12 +107,12 @@ export default class AkeraWebAuthentication extends WebMiddleware implements IWe
 
       const strategyName = provider.name || provider.strategy;
 
-      this._logger.log(LogLevel.info, `Authentication provider: ${provider.strategy} [${strategyName}]`);
+      this.log(LogLevel.info, `Authentication provider: ${provider.strategy} [${strategyName}]`);
       try {
         this.useProvider(provider, this._router, this._passport);
         provider.fullRoute = provider.route;
       } catch (err) {
-        this._logger.log(LogLevel.error, err.message);
+        this.log(LogLevel.error, err.message);
       }
     }
 

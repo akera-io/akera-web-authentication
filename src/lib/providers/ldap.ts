@@ -19,7 +19,7 @@ function loadCertificates(tlsOptions, webAuth: AkeraWebAuthentication) {
       }
     }
   } catch (err) {
-    webAuth.logger.log(LogLevel.warn, "LDAP CA certificate load error: $1", err.message);
+    webAuth.log(LogLevel.warn, `LDAP CA certificate load error: ${err.message}`);
   }
 
   return tlsOptions;
@@ -76,14 +76,14 @@ export default function init(config: ILDAPProvider, router: Router, passport: Pa
         }
 
         if (err) {
-          webAuth.logger.log(LogLevel.warn, `LDAP authentication error: ${err.message}`);
+          webAuth.log(LogLevel.warn, `LDAP authentication error: ${err.message}`);
           return next(err);
         }
 
         webAuth.successRedirect(req, res, next);
       })(req, res, next);
     } catch (err) {
-      webAuth.logger.log(LogLevel.error, `Passport authentication error: ${err.message}`);
+      webAuth.log(LogLevel.error, `Passport authentication error: ${err.message}`);
       return next(err);
     }
   });
