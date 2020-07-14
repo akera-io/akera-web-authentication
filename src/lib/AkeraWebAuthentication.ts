@@ -5,6 +5,7 @@ import {AkeraLogger, ConnectionPool, ConnectionPoolOptions, LogLevel} from "@ake
 
 import Strategies from "./providers";
 import {IProvider} from "./ProviderInterfaces";
+import {IWebMiddleware} from "@akeraio/web-middleware/dist";
 
 export interface IAkeraWebConfig {
   route?: string,
@@ -22,7 +23,7 @@ export interface IStrategy {
   options: any
 }
 
-export default class AkeraWebAuthentication extends WebMiddleware {
+export default class AkeraWebAuthentication extends WebMiddleware implements IWebMiddleware {
   private strategies: Array<IStrategy>;
 
   private _router: Router;
@@ -31,7 +32,7 @@ export default class AkeraWebAuthentication extends WebMiddleware {
   private _connectionPool: ConnectionPool;
   private _logger: AkeraLogger;
 
-  get dependencies(): Array<string> {
+  getDependencies(): Array<string> {
     return ["@akeraio/web-session"]
   }
 
